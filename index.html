@@ -1,0 +1,319 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Ma dette - Suivi</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { max-width: 1000px; margin: 0 auto; }
+        .header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 28px;
+            padding: 32px;
+            margin-bottom: 32px;
+            text-align: center;
+        }
+        .header h1 {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        .debt-card {
+            background: linear-gradient(135deg, #1e293b, #0f172a);
+            border-radius: 28px;
+            padding: 40px;
+            margin-bottom: 32px;
+            text-align: center;
+            transition: transform 0.3s;
+        }
+        .debt-card:hover { transform: translateY(-5px); }
+        .debt-label { color: #94a3b8; text-transform: uppercase; font-size: 0.85rem; margin-bottom: 16px; }
+        .debt-amount { font-size: 4rem; font-weight: 800; color: #ef4444; margin: 20px 0; }
+        .info-card {
+            background: white;
+            border-radius: 24px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+        .info-row {
+            display: flex;
+            justify-content: space-between;
+            padding: 14px 0;
+            border-bottom: 1px solid #e2e8f0;
+        }
+        .info-row:last-child { border-bottom: none; }
+        .info-label { font-weight: 600; color: #475569; }
+        .info-value { color: #1e293b; font-weight: 500; }
+        .section {
+            background: white;
+            border-radius: 24px;
+            padding: 28px;
+            margin-bottom: 32px;
+        }
+        .section h2 { margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #1e293b; }
+        .transaction-list { max-height: 600px; overflow-y: auto; }
+        .transaction-item {
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border-left: 4px solid;
+            transition: all 0.2s;
+        }
+        .transaction-item:hover { background: #f1f5f9; transform: translateX(5px); }
+        .transaction-emprunt { border-left-color: #ef4444; }
+        .transaction-remboursement { border-left-color: #10b981; }
+        .transaction-interets { border-left-color: #f59e0b; }
+        .refresh-btn {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            border: none;
+            border-radius: 50px;
+            padding: 14px 24px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: 600;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        .refresh-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
+        .last-update { text-align: center; color: #94a3b8; font-size: 0.75rem; margin-top: 20px; }
+        .error-card {
+            background: white;
+            border-radius: 24px;
+            padding: 48px;
+            text-align: center;
+        }
+        .loading-spinner { text-align: center; padding: 60px; color: white; font-size: 1.2rem; }
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .debt-amount { font-size: 2.5rem; }
+            .info-row { flex-direction: column; gap: 6px; }
+        }
+        @keyframes slideIn {
+            from { transform: translateX(100%); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: #10b981;
+            color: white;
+            padding: 12px 20px;
+            border-radius: 12px;
+            z-index: 2000;
+            animation: slideIn 0.3s ease;
+            font-weight: 500;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="app">
+        <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Chargement de vos données...</div>
+    </div>
+    <button class="refresh-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i> Actualiser</button>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+        import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
+
+        // Firebase configuration
+        const firebaseConfig = {
+            apiKey: "AIzaSyDt1q740HCXf0gRp0fADRtfCsdcWqUpBCE",
+            authDomain: "gestion-dettes-fcea1.firebaseapp.com",
+            projectId: "gestion-dettes-fcea1",
+            storageBucket: "gestion-dettes-fcea1.firebasestorage.app",
+            messagingSenderId: "673790821106",
+            appId: "1:673790821106:web:80e6bf9b24f53f2f37866b",
+            measurementId: "G-1LQ8QRHNF0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+        
+        let currentPerson = null;
+        let currentPersonId = null;
+        let unsubscribeListener = null;
+        
+        function getPersonIdFromUrl() {
+            const params = new URLSearchParams(window.location.search);
+            return params.get('id');
+        }
+        
+        async function loadData() {
+            const id = getPersonIdFromUrl();
+            if (!id) { showError("Lien invalide - Identifiant manquant"); return; }
+            currentPersonId = id;
+            await loadPersonData();
+        }
+        
+        async function loadPersonData() {
+            const docRef = doc(db, "debtors", currentPersonId);
+            const docSnap = await getDoc(docRef);
+            
+            if (docSnap.exists()) {
+                currentPerson = { id: docSnap.id, ...docSnap.data() };
+                renderPage();
+                setupRealtimeListener();
+            } else {
+                showError("Personne non trouvée - Lien invalide ou expiré");
+            }
+        }
+        
+        function setupRealtimeListener() {
+            if (unsubscribeListener) unsubscribeListener();
+            
+            const docRef = doc(db, "debtors", currentPersonId);
+            unsubscribeListener = onSnapshot(docRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    const newData = { id: docSnap.id, ...docSnap.data() };
+                    if (JSON.stringify(newData) !== JSON.stringify(currentPerson)) {
+                        currentPerson = newData;
+                        renderPage();
+                        showNotification("Mise à jour des données en temps réel");
+                    }
+                }
+            }, (error) => {
+                console.error("Realtime error:", error);
+            });
+        }
+        
+        function renderPage() {
+            const app = document.getElementById('app');
+            const transactions = [...(currentPerson.transactions || [])].sort((a,b) => new Date(b.date) - new Date(a.date));
+            const monthlyInterest = (currentPerson.currentDebt || 0) * ((currentPerson.interestRate || 0) / 100) / 12;
+            const dailyInterest = (currentPerson.currentDebt || 0) * ((currentPerson.interestRate || 0) / 100) / 365;
+            
+            app.innerHTML = `
+                <div class="header">
+                    <h1><i class="fas fa-coins"></i> Suivi de ma dette</h1>
+                    <p>Bonjour <strong>${escapeHtml(currentPerson.name)}</strong></p>
+                </div>
+                <div class="debt-card">
+                    <div class="debt-label">Montant actuel dû</div>
+                    <div class="debt-amount">${(currentPerson.currentDebt || 0).toFixed(2)} €</div>
+                </div>
+                <div class="info-card">
+                    <div class="info-row"><span class="info-label"><i class="fas fa-percent"></i> Taux d'intérêt</span><span class="info-value">${currentPerson.interestRate || 0}%</span></div>
+                    <div class="info-row"><span class="info-label"><i class="fas fa-calendar-alt"></i> Fréquence</span><span class="info-value">${getFrequencyLabel(currentPerson.frequency || 'monthly')}</span></div>
+                    <div class="info-row"><span class="info-label"><i class="fas fa-chart-line"></i> Intérêts mensuels estimés</span><span class="info-value">${monthlyInterest.toFixed(2)} €</span></div>
+                    <div class="info-row"><span class="info-label"><i class="fas fa-chart-line"></i> Intérêts journaliers</span><span class="info-value">${dailyInterest.toFixed(4)} €</span></div>
+                    <div class="info-row"><span class="info-label"><i class="fas fa-clock"></i> Dernière mise à jour</span><span class="info-value">${currentPerson.lastInterestUpdate || 'N/A'}</span></div>
+                </div>
+                <div class="section">
+                    <h2><i class="fas fa-history"></i> Historique des transactions</h2>
+                    <div class="transaction-list" id="transactionList"></div>
+                </div>
+                <div class="last-update">
+                    <i class="fas fa-clock"></i> Dernière actualisation: ${new Date().toLocaleString()}
+                </div>
+            `;
+            
+            const container = document.getElementById('transactionList');
+            if (transactions.length === 0) {
+                container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:40px;"><i class="fas fa-inbox"></i> Aucune transaction</p>';
+            } else {
+                // Limiter à 50 transactions pour performance
+                const recent = transactions.slice(0, 50);
+                recent.forEach(t => {
+                    const div = document.createElement('div');
+                    div.className = `transaction-item transaction-${t.type}`;
+                    div.innerHTML = `
+                        <div style="font-size:0.8rem; color:#64748b; margin-bottom:5px;">📅 ${t.date}</div>
+                        <div style="font-weight:600; margin-bottom:5px;">${getTransactionIcon(t.type)} ${getTransactionLabel(t.type)}</div>
+                        <div style="font-size:1.1rem; font-weight:700;">${t.amount.toFixed(2)} €</div>
+                        ${t.description ? `<div style="margin-top:5px; font-size:0.85rem; color:#64748b;"><i class="fas fa-comment"></i> ${escapeHtml(t.description)}</div>` : ''}
+                    `;
+                    container.appendChild(div);
+                });
+                if (transactions.length > 50) {
+                    const info = document.createElement('p');
+                    info.style.textAlign = 'center';
+                    info.style.color = '#94a3b8';
+                    info.style.marginTop = '10px';
+                    info.innerHTML = `<i class="fas fa-info-circle"></i> Affichage des 50 dernières transactions sur ${transactions.length}`;
+                    container.appendChild(info);
+                }
+            }
+        }
+        
+        function getFrequencyLabel(freq) {
+            const labels = {
+                daily: 'Quotidienne',
+                weekly: 'Hebdomadaire',
+                monthly: 'Mensuelle'
+            };
+            return labels[freq] || freq;
+        }
+        
+        function getTransactionIcon(type) {
+            const icons = { emprunt: '💰', remboursement: '💳', interets: '📈' };
+            return icons[type] || '📝';
+        }
+        
+        function getTransactionLabel(type) {
+            const labels = { emprunt: 'Emprunt', remboursement: 'Remboursement', interets: 'Intérêts' };
+            return labels[type] || type;
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        function showError(msg) {
+            document.getElementById('app').innerHTML = `
+                <div class="error-card">
+                    <i class="fas fa-exclamation-triangle" style="font-size:3rem; color:#ef4444; margin-bottom:20px;"></i>
+                    <h2 style="color:#ef4444; margin-bottom:16px;">Erreur</h2>
+                    <p>${msg}</p>
+                    <button onclick="location.reload()" style="margin-top:24px; padding:12px 24px; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border:none; border-radius:12px; cursor:pointer;">
+                        <i class="fas fa-sync-alt"></i> Réessayer
+                    </button>
+                </div>
+            `;
+        }
+        
+        function showNotification(message) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.innerHTML = `<i class="fas fa-sync-alt"></i> ${message}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+        
+        // Nettoyer le listener à la fermeture
+        window.addEventListener('beforeunload', () => {
+            if (unsubscribeListener) unsubscribeListener();
+        });
+        
+        loadData();
+    </script>
+</body>
+</html>
