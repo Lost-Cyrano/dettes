@@ -1,0 +1,1133 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Admin - Gestion des dettes</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0f2027 0%, #203a43 50%, #2c5364 100%);
+            min-height: 100vh;
+            padding: 24px;
+        }
+        .container { max-width: 1600px; margin: 0 auto; }
+        .header {
+            background: rgba(255,255,255,0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            padding: 28px 32px;
+            margin-bottom: 32px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+        }
+        .header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 8px;
+        }
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 32px;
+        }
+        .stat-card {
+            background: white;
+            border-radius: 20px;
+            padding: 20px;
+            transition: all 0.3s;
+            position: relative;
+            border: 1px solid rgba(0,0,0,0.05);
+            cursor: help;
+        }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 20px 40px rgba(0,0,0,0.15); }
+        .stat-header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 12px; }
+        .stat-icon { font-size: 2rem; }
+        .info-icon {
+            cursor: pointer;
+            color: #94a3b8;
+            font-size: 1.2rem;
+            background: none;
+            border: none;
+            padding: 4px;
+        }
+        .info-icon:hover { color: #667eea; transform: scale(1.1); }
+        .stat-card h3 { font-size: 0.85rem; text-transform: uppercase; letter-spacing: 1px; color: #64748b; margin-bottom: 8px; }
+        .stat-card .value { font-size: 2rem; font-weight: 800; color: #1a202c; margin-bottom: 8px; }
+        .stat-positive .value { color: #10b981; }
+        .stat-warning .value { color: #f59e0b; }
+        .stat-info .value { color: #3b82f6; }
+        .explanation-box {
+            display: none;
+            background: #f1f5f9;
+            padding: 16px;
+            border-radius: 12px;
+            margin-top: 12px;
+            font-size: 0.85rem;
+            line-height: 1.5;
+            color: #334155;
+            border-left: 3px solid #667eea;
+        }
+        .explanation-box.show { display: block; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        .section {
+            background: white;
+            border-radius: 24px;
+            padding: 28px;
+            margin-bottom: 32px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+        }
+        .section h2 { font-size: 1.5rem; margin-bottom: 20px; display: flex; align-items: center; gap: 10px; color: #1a202c; }
+        .tabs { display: flex; gap: 12px; margin-bottom: 24px; border-bottom: 2px solid #e2e8f0; flex-wrap: wrap; }
+        .tab-btn {
+            padding: 12px 24px;
+            background: none;
+            border: none;
+            font-size: 1rem;
+            font-weight: 600;
+            cursor: pointer;
+            color: #64748b;
+            transition: all 0.3s;
+        }
+        .tab-btn.active { color: #667eea; border-bottom: 2px solid #667eea; margin-bottom: -2px; }
+        .tab-content { display: none; animation: fadeIn 0.3s ease; }
+        .tab-content.active { display: block; }
+        .persons-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(350px, 1fr)); gap: 24px; }
+        .person-card {
+            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            border-radius: 20px;
+            padding: 20px;
+            transition: all 0.3s;
+            border: 1px solid #e2e8f0;
+        }
+        .person-card:hover { transform: translateY(-4px); box-shadow: 0 12px 24px rgba(0,0,0,0.1); }
+        .person-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; }
+        .person-header h3 { font-size: 1.3rem; color: #1e293b; }
+        .person-debt { font-size: 2rem; font-weight: 800; color: #ef4444; margin: 16px 0; }
+        .person-info { display: grid; gap: 8px; margin: 16px 0; font-size: 0.85rem; }
+        .person-info-item { display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px dashed #cbd5e1; }
+        .link-preview {
+            background: #e2e8f0;
+            padding: 8px;
+            border-radius: 10px;
+            font-size: 0.7rem;
+            font-family: monospace;
+            word-break: break-all;
+            cursor: pointer;
+            margin: 12px 0;
+        }
+        .link-preview:hover { background: #cbd5e1; }
+        .btn-group { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+        button {
+            padding: 10px 16px;
+            border: none;
+            border-radius: 12px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
+        .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+        .btn-danger { background: #ef4444; color: white; }
+        .btn-danger:hover { background: #dc2626; }
+        .btn-success { background: #10b981; color: white; }
+        .btn-warning { background: #f59e0b; color: white; }
+        .btn-info { background: #3b82f6; color: white; }
+        .btn-secondary { background: #64748b; color: white; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 8px; font-weight: 600; color: #1e293b; }
+        .form-group input, .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            font-size: 0.95rem;
+        }
+        .form-group input:focus, .form-group select:focus { outline: none; border-color: #667eea; }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.6);
+            backdrop-filter: blur(4px);
+            z-index: 1000;
+            overflow-y: auto;
+        }
+        .modal-content {
+            background: white;
+            margin: 40px auto;
+            max-width: 750px;
+            border-radius: 28px;
+            padding: 32px;
+            animation: slideUp 0.3s ease;
+        }
+        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; }
+        .close { font-size: 32px; cursor: pointer; color: #999; transition: all 0.2s; }
+        .close:hover { color: #333; transform: rotate(90deg); }
+        .transaction-list { max-height: 500px; overflow-y: auto; }
+        .transaction-item {
+            padding: 16px;
+            margin-bottom: 12px;
+            border-radius: 16px;
+            background: #f8fafc;
+            border-left: 4px solid;
+        }
+        .transaction-emprunt { border-left-color: #ef4444; }
+        .transaction-remboursement { border-left-color: #10b981; }
+        .transaction-interets { border-left-color: #f59e0b; }
+        .alert { background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; padding: 12px; border-radius: 12px; margin-bottom: 16px; }
+        .notification {
+            position: fixed;
+            bottom: 24px;
+            right: 24px;
+            background: #1e293b;
+            color: white;
+            padding: 14px 24px;
+            border-radius: 50px;
+            z-index: 2000;
+            animation: slideInRight 0.3s ease;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        @keyframes slideInRight { from { transform: translateX(100%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @media (max-width: 768px) {
+            body { padding: 16px; }
+            .stats-grid { grid-template-columns: 1fr; }
+            .persons-grid { grid-template-columns: 1fr; }
+            .modal-content { margin: 20px; padding: 24px; }
+            .btn-group button { flex: 1; min-width: 70px; }
+            .tabs { gap: 8px; }
+            .tab-btn { padding: 8px 16px; font-size: 0.85rem; }
+        }
+        .loading-spinner { text-align: center; padding: 40px; color: white; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1><i class="fas fa-coins"></i> Gestion des Dettes (Cloud)</h1>
+            <p>Administration complète - Calcul séquentiel précis des intérêts</p>
+            <div id="connectionStatus" style="margin-top: 10px; font-size: 0.85rem;"></div>
+        </div>
+
+        <div class="stats-grid" id="statsGrid">
+            <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
+        </div>
+
+        <div class="section">
+            <h2><i class="fas fa-chart-line"></i> Actions rapides</h2>
+            <div class="tabs">
+                <button class="tab-btn active" onclick="switchTab('transactions')"><i class="fas fa-exchange-alt"></i> Transactions</button>
+                <button class="tab-btn" onclick="switchTab('persons')"><i class="fas fa-users"></i> Gestion</button>
+                <button class="tab-btn" onclick="switchTab('history')"><i class="fas fa-history"></i> Historique</button>
+            </div>
+
+            <div id="tab-transactions" class="tab-content active">
+                <h3 style="margin-bottom: 20px;"><i class="fas fa-plus-circle"></i> Nouvelle transaction</h3>
+                <div class="form-group">
+                    <label><i class="fas fa-user"></i> Personne :</label>
+                    <select id="transactionPerson" style="width: 100%; padding: 12px; border-radius: 12px; border: 2px solid #e2e8f0;">
+                        <option value="">Sélectionner</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-tag"></i> Type :</label>
+                    <select id="transactionType">
+                        <option value="emprunt">💰 Emprunt</option>
+                        <option value="remboursement">💳 Remboursement</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-euro-sign"></i> Montant (€) :</label>
+                    <input type="number" id="transactionAmount" step="0.01" placeholder="0.00">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-calendar"></i> Date :</label>
+                    <input type="date" id="transactionDate">
+                </div>
+                <div class="form-group">
+                    <label><i class="fas fa-pencil-alt"></i> Description :</label>
+                    <input type="text" id="transactionDesc" placeholder="Optionnel">
+                </div>
+                <button class="btn-primary" onclick="addGlobalTransaction()" style="width: 100%;"><i class="fas fa-save"></i> Enregistrer</button>
+            </div>
+
+            <div id="tab-persons" class="tab-content">
+                <button class="btn-primary" onclick="openAddPersonModal()" style="margin-bottom: 20px;"><i class="fas fa-user-plus"></i> Ajouter</button>
+                <div id="personsList" class="persons-grid">
+                    <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
+                </div>
+            </div>
+
+            <div id="tab-history" class="tab-content">
+                <div id="globalHistory" class="transaction-list">
+                    <div class="loading-spinner"><i class="fas fa-spinner fa-spin"></i> Chargement...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="personModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modalTitle"><i class="fas fa-user-plus"></i> Ajouter</h2>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="form-group">
+                <label>Nom :</label>
+                <input type="text" id="personName" placeholder="Nom">
+            </div>
+            <div class="form-group">
+                <label>Taux d'intérêt (%) :</label>
+                <input type="number" id="interestRate" step="0.1" value="5">
+            </div>
+            <div class="form-group">
+                <label>Fréquence :</label>
+                <select id="frequency">
+                    <option value="daily">📅 Quotidienne</option>
+                    <option value="weekly">📆 Hebdomadaire</option>
+                    <option value="monthly">📆 Mensuelle</option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Dette initiale (€) :</label>
+                <input type="number" id="initialDebt" step="0.01" value="0">
+            </div>
+            <div class="form-group">
+                <label>Date début :</label>
+                <input type="date" id="startDate">
+            </div>
+            <button class="btn-primary" onclick="savePerson()" style="width: 100%;"><i class="fas fa-check"></i> Enregistrer</button>
+        </div>
+    </div>
+
+    <div id="detailModal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="detailName"><i class="fas fa-user-circle"></i> Détails</h2>
+                <span class="close" onclick="closeDetailModal()">&times;</span>
+            </div>
+            <div id="detailBody"></div>
+        </div>
+    </div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
+        import { getFirestore, collection, doc, addDoc, updateDoc, deleteDoc, onSnapshot, query } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+        import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDt1q740HCXf0gRp0fADRtfCsdcWqUpBCE",
+            authDomain: "gestion-dettes-fcea1.firebaseapp.com",
+            projectId: "gestion-dettes-fcea1",
+            storageBucket: "gestion-dettes-fcea1.firebasestorage.app",
+            messagingSenderId: "673790821106",
+            appId: "1:673790821106:web:80e6bf9b24f53f2f37866b",
+            measurementId: "G-1LQ8QRHNF0"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const analytics = getAnalytics(app);
+        const db = getFirestore(app);
+
+        let debtors = [];
+        let unsubscribeListener = null;
+        let isLoading = true;
+
+        function generateUUID() {
+            return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                const r = Math.random() * 16 | 0;
+                const v = c === 'x' ? r : (r & 0x3 | 0x8);
+                return v.toString(16);
+            });
+        }
+
+        function roundUpToCent(amount) {
+            return Math.ceil(amount * 100) / 100;
+        }
+
+        // Calcul séquentiel des intérêts - Chaque période utilise le solde après la période précédente
+        function calculateSequentialInterest(person, targetDate) {
+            const endDate = new Date(targetDate);
+            const startDate = new Date(person.lastInterestUpdate);
+            
+            if (endDate <= startDate) return { interests: [], totalInterest: 0, periodsCount: 0, finalBalance: person.currentDebt };
+            
+            // Générer toutes les dates d'application des intérêts
+            let interestDates = [];
+            let currentDate = new Date(startDate);
+            
+            while (currentDate < endDate) {
+                let nextDate = new Date(currentDate);
+                switch(person.frequency) {
+                    case 'daily': nextDate.setDate(nextDate.getDate() + 1); break;
+                    case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
+                    case 'monthly': nextDate.setMonth(nextDate.getMonth() + 1); break;
+                }
+                if (nextDate <= endDate) {
+                    interestDates.push(new Date(nextDate));
+                }
+                currentDate = nextDate;
+            }
+            
+            // Récupérer toutes les transactions (emprunts, remboursements) dans l'ordre chronologique
+            let allEvents = [];
+            
+            // Ajouter les transactions existantes (sans les intérêts car ils ne sont pas encore appliqués)
+            (person.transactions || []).forEach(trans => {
+                if (trans.type !== 'interets') { // On exclut les intérêts déjà appliqués
+                    const transDate = new Date(trans.date);
+                    allEvents.push({
+                        date: transDate,
+                        type: trans.type,
+                        amount: trans.amount
+                    });
+                }
+            });
+            
+            // Ajouter aussi les intérêts déjà appliqués pour avoir le bon solde de départ
+            (person.transactions || []).forEach(trans => {
+                if (trans.type === 'interets') {
+                    const transDate = new Date(trans.date);
+                    allEvents.push({
+                        date: transDate,
+                        type: 'interet_passe',
+                        amount: trans.amount
+                    });
+                }
+            });
+            
+            allEvents.sort((a, b) => a.date - b.date);
+            
+            // Calculer le solde au startDate
+            let currentBalance = person.currentDebt;
+            
+            // Revenir en arrière pour trouver le solde à startDate
+            let tempBalance = person.currentDebt;
+            let tempEvents = [...allEvents].reverse();
+            for (let event of tempEvents) {
+                if (event.date >= startDate) {
+                    if (event.type === 'emprunt') tempBalance -= event.amount;
+                    else if (event.type === 'remboursement') tempBalance += event.amount;
+                    else if (event.type === 'interet_passe') tempBalance -= event.amount;
+                }
+            }
+            currentBalance = tempBalance;
+            
+            // Simuler l'évolution du solde jusqu'à endDate en appliquant les intérêts séquentiellement
+            let simulationBalance = currentBalance;
+            let interests = [];
+            let lastDate = startDate;
+            
+            // Trier tous les événements (transactions + dates d'intérêts)
+            let allDates = [...interestDates];
+            let relevantEvents = allEvents.filter(e => e.date > startDate && e.date <= endDate);
+            
+            for (let event of relevantEvents) {
+                allDates.push(event.date);
+            }
+            allDates.sort((a, b) => a - b);
+            
+            // Parcourir chronologiquement
+            let currentSimBalance = currentBalance;
+            let currentSimDate = startDate;
+            
+            for (let date of allDates) {
+                if (date <= currentSimDate) continue;
+                
+                // Vérifier si cette date est une date d'intérêt
+                const isInterestDate = interestDates.some(d => d.getTime() === date.getTime());
+                
+                if (isInterestDate) {
+                    // Appliquer l'intérêt sur le solde actuel
+                    const rate = person.interestRate / 100;
+                    let interestAmount = currentSimBalance * rate;
+                    interestAmount = roundUpToCent(interestAmount);
+                    
+                    interests.push({
+                        date: date.toISOString().split('T')[0],
+                        balanceBefore: currentSimBalance,
+                        interest: interestAmount
+                    });
+                    
+                    currentSimBalance += interestAmount;
+                    currentSimDate = date;
+                }
+                
+                // Appliquer les transactions à cette date
+                const eventsAtDate = relevantEvents.filter(e => e.date.getTime() === date.getTime());
+                for (let event of eventsAtDate) {
+                    if (event.type === 'emprunt') currentSimBalance += event.amount;
+                    else if (event.type === 'remboursement') currentSimBalance -= event.amount;
+                    currentSimDate = date;
+                }
+            }
+            
+            // Vérifier les dates d'intérêts qui n'ont pas été traitées
+            for (let interestDate of interestDates) {
+                const alreadyProcessed = interests.some(i => i.date === interestDate.toISOString().split('T')[0]);
+                if (!alreadyProcessed) {
+                    // Trouver le solde à cette date
+                    let balanceAtDate = currentBalance;
+                    for (let event of relevantEvents) {
+                        if (event.date <= interestDate) {
+                            if (event.type === 'emprunt') balanceAtDate += event.amount;
+                            else if (event.type === 'remboursement') balanceAtDate -= event.amount;
+                        }
+                    }
+                    // Ajouter les intérêts précédents
+                    for (let prevInterest of interests) {
+                        if (new Date(prevInterest.date) <= interestDate) {
+                            balanceAtDate += prevInterest.interest;
+                        }
+                    }
+                    
+                    const rate = person.interestRate / 100;
+                    let interestAmount = balanceAtDate * rate;
+                    interestAmount = roundUpToCent(interestAmount);
+                    
+                    interests.push({
+                        date: interestDate.toISOString().split('T')[0],
+                        balanceBefore: balanceAtDate,
+                        interest: interestAmount
+                    });
+                    
+                    currentSimBalance = balanceAtDate + interestAmount;
+                }
+            }
+            
+            // Trier les intérêts par date
+            interests.sort((a, b) => new Date(a.date) - new Date(b.date));
+            
+            const totalInterest = interests.reduce((sum, i) => sum + i.interest, 0);
+            const finalBalance = currentSimBalance;
+            
+            return { 
+                interests, 
+                totalInterest: roundUpToCent(totalInterest), 
+                periodsCount: interests.length,
+                finalBalance: finalBalance
+            };
+        }
+
+        // Appliquer les intérêts séquentiellement
+        async function applySequentialInterest(person, forceApply = false, customEndDate = null, periodsToApply = null) {
+            const targetDate = customEndDate ? new Date(customEndDate) : new Date();
+            const { interests, totalInterest, periodsCount, finalBalance } = calculateSequentialInterest(person, targetDate);
+            
+            let periodsToApplyCount = periodsToApply !== null ? Math.min(periodsToApply, interests.length) : interests.length;
+            
+            if (periodsToApplyCount === 0 && !forceApply) return false;
+            
+            let appliedInterests = interests.slice(0, periodsToApplyCount);
+            
+            if (appliedInterests.length > 0) {
+                let newBalance = person.currentDebt;
+                let newLastUpdate = person.lastInterestUpdate;
+                
+                for (let interest of appliedInterests) {
+                    const transaction = {
+                        id: generateUUID(),
+                        date: interest.date,
+                        type: "interets",
+                        amount: interest.interest,
+                        description: `Intérêt ${person.frequency} - Solde avant: ${interest.balanceBefore.toFixed(2)}€ à ${person.interestRate}%`
+                    };
+                    person.transactions = [transaction, ...(person.transactions || [])];
+                    newBalance += interest.interest;
+                    newLastUpdate = interest.date;
+                }
+                
+                person.currentDebt = newBalance;
+                person.lastInterestUpdate = newLastUpdate;
+                return true;
+            } else if (forceApply && periodsToApplyCount === 0) {
+                const fakeInterest = roundUpToCent(person.currentDebt * (person.interestRate / 100));
+                const transaction = {
+                    id: generateUUID(),
+                    date: targetDate.toISOString().split('T')[0],
+                    type: "interets",
+                    amount: fakeInterest,
+                    description: `Intérêt forcé (hors échéance) - ${person.interestRate}%`
+                };
+                person.transactions = [transaction, ...(person.transactions || [])];
+                person.currentDebt += fakeInterest;
+                person.lastInterestUpdate = targetDate.toISOString().split('T')[0];
+                return true;
+            }
+            
+            return false;
+        }
+
+        // Calculer les statistiques financières RÉELLES
+        function calculateRealFinancialStats() {
+            let totalMoneyLent = 0;
+            let totalMoneyRepaid = 0;
+            let totalInterestPaid = 0;
+            let totalCurrentDebt = 0;
+            
+            debtors.forEach(person => {
+                let personLent = 0;
+                let personRepaid = 0;
+                let personInterestCollected = 0;
+                
+                (person.transactions || []).forEach(transaction => {
+                    if (transaction.type === 'emprunt') {
+                        personLent += transaction.amount;
+                    } else if (transaction.type === 'remboursement') {
+                        personRepaid += transaction.amount;
+                    } else if (transaction.type === 'interets') {
+                        personInterestCollected += transaction.amount;
+                    }
+                });
+                
+                totalMoneyLent += personLent;
+                totalMoneyRepaid += personRepaid;
+                totalInterestPaid += personInterestCollected;
+                totalCurrentDebt += person.currentDebt;
+            });
+            
+            const netCashOut = totalMoneyLent - totalMoneyRepaid;
+            const realProfit = totalInterestPaid;
+            
+            return {
+                totalLent: totalMoneyLent,
+                totalRepaid: totalMoneyRepaid,
+                netCashOut: netCashOut,
+                realProfit: realProfit,
+                totalCurrentDebt: totalCurrentDebt
+            };
+        }
+
+        window.toggleExplanation = function(id) {
+            const box = document.getElementById(`explanation-${id}`);
+            if (box) box.classList.toggle('show');
+        };
+
+        function renderStats() {
+            const stats = calculateRealFinancialStats();
+            const container = document.getElementById('statsGrid');
+            container.innerHTML = `
+                <div class="stat-card stat-positive">
+                    <div class="stat-header"><div class="stat-icon"><i class="fas fa-hand-holding-usd"></i></div><button class="info-icon" onclick="toggleExplanation('capital')"><i class="fas fa-question-circle"></i></button></div>
+                    <h3>💰 TOTAL PRÊTÉ</h3>
+                    <div class="value">${stats.totalLent.toFixed(2)} €</div>
+                    <div id="explanation-capital" class="explanation-box">
+                        <div class="explanation-title">📖 Qu'est-ce que c'est ?</div>
+                        <p>La somme totale que vous avez donnée de votre poche aux débiteurs.</p>
+                        <div class="explanation-title">💡 Exemple</div>
+                        <p>Prêt 100€ → Total prêté = 100€</p>
+                        <div class="explanation-title">📊 Utilité</div>
+                        <p>Savoir combien d'argent est sorti de votre compte.</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header"><div class="stat-icon"><i class="fas fa-coins"></i></div><button class="info-icon" onclick="toggleExplanation('repaid')"><i class="fas fa-question-circle"></i></button></div>
+                    <h3>💵 TOTAL REMBOURSÉ</h3>
+                    <div class="value">${stats.totalRepaid.toFixed(2)} €</div>
+                    <div id="explanation-repaid" class="explanation-box">
+                        <div class="explanation-title">📖 Qu'est-ce que c'est ?</div>
+                        <p>La somme totale que les débiteurs vous ont remboursée.</p>
+                        <div class="explanation-title">💡 Exemple</div>
+                        <p>Remboursement 30€ → Total remboursé = 30€</p>
+                        <div class="explanation-title">📊 Utilité</div>
+                        <p>Connaître les entrées d'argent.</p>
+                    </div>
+                </div>
+                <div class="stat-card stat-info">
+                    <div class="stat-header"><div class="stat-icon"><i class="fas fa-chart-line"></i></div><button class="info-icon" onclick="toggleExplanation('profit')"><i class="fas fa-question-circle"></i></button></div>
+                    <h3>📈 BÉNÉFICE RÉEL</h3>
+                    <div class="value">${stats.realProfit.toFixed(2)} €</div>
+                    <div id="explanation-profit" class="explanation-box">
+                        <div class="explanation-title">📖 Qu'est-ce que c'est ?</div>
+                        <p>Les intérêts EFFECTIVEMENT payés par les débiteurs.</p>
+                        <div class="explanation-title">💡 Exemple</div>
+                        <p>Intérêts générés ET remboursés = Bénéfice réel</p>
+                        <div class="explanation-title">📊 Utilité</div>
+                        <p>C'est votre VRAI gain en argent comptant.</p>
+                    </div>
+                </div>
+                <div class="stat-card stat-warning">
+                    <div class="stat-header"><div class="stat-icon"><i class="fas fa-chart-simple"></i></div><button class="info-icon" onclick="toggleExplanation('netcash')"><i class="fas fa-question-circle"></i></button></div>
+                    <h3>🎯 SORTIE NETTE</h3>
+                    <div class="value">${stats.netCashOut.toFixed(2)} €</div>
+                    <div id="explanation-netcash" class="explanation-box">
+                        <div class="explanation-title">📖 Qu'est-ce que c'est ?</div>
+                        <p>Prêté - Remboursé. Argent encore chez les débiteurs (hors intérêts).</p>
+                        <div class="explanation-title">💡 Exemple</div>
+                        <p>Prêté 100€, remboursé 30€ → Sortie nette = 70€</p>
+                        <div class="explanation-title">📊 Utilité</div>
+                        <p>Savoir combien d'argent est actuellement "dehors".</p>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-header"><div class="stat-icon"><i class="fas fa-database"></i></div><button class="info-icon" onclick="toggleExplanation('current')"><i class="fas fa-question-circle"></i></button></div>
+                    <h3>📊 DETTE TOTALE</h3>
+                    <div class="value">${stats.totalCurrentDebt.toFixed(2)} €</div>
+                    <div id="explanation-current" class="explanation-box">
+                        <div class="explanation-title">📖 Qu'est-ce que c'est ?</div>
+                        <p>Capital restant dû + Intérêts générés (payés ou non).</p>
+                        <div class="explanation-title">💡 Exemple</div>
+                        <p>Capital 70€ + Intérêts 5€ = Dette 75€</p>
+                        <div class="explanation-title">📊 Utilité</div>
+                        <p>Ce que les gens vous doivent officiellement.</p>
+                    </div>
+                </div>
+            `;
+        }
+
+        function renderPersons() {
+            const container = document.getElementById('personsList');
+            const selectContainer = document.getElementById('transactionPerson');
+            
+            if (!container) return;
+            container.innerHTML = '';
+            selectContainer.innerHTML = '<option value="">Sélectionner</option>';
+            
+            if (debtors.length === 0) {
+                container.innerHTML = '<p style="text-align:center; padding:40px; color:#888;">Aucune personne. Cliquez sur "Ajouter" pour commencer.</p>';
+                return;
+            }
+            
+            debtors.forEach(person => {
+                const targetDate = new Date();
+                const { periodsCount } = calculateSequentialInterest(person, targetDate);
+                const needsUpdate = periodsCount > 0;
+                const link = `${window.location.origin}${window.location.pathname.replace('admin.html', '')}index.html?id=${person.id}`;
+                
+                const card = document.createElement('div');
+                card.className = 'person-card';
+                card.innerHTML = `
+                    <div class="person-header"><h3><i class="fas fa-user"></i> ${escapeHtml(person.name)}</h3></div>
+                    <div class="person-debt">${(person.currentDebt || 0).toFixed(2)} €</div>
+                    <div class="person-info">
+                        <div class="person-info-item"><span>📊 Taux:</span><span>${person.interestRate || 0}%</span></div>
+                        <div class="person-info-item"><span>⏱️ Fréquence:</span><span>${person.frequency || 'monthly'}</span></div>
+                        <div class="person-info-item"><span>📅 Dernier intérêt:</span><span>${person.lastInterestUpdate || 'N/A'}</span></div>
+                    </div>
+                    <div class="link-preview" onclick="copyToClipboard('${link}')"><i class="fas fa-link"></i> ${link.substring(0, 50)}...</div>
+                    ${needsUpdate ? `<div class="alert"><i class="fas fa-clock"></i> ${periodsCount} période(s) d'intérêts en attente</div>` : ''}
+                    <div class="btn-group">
+                        <button class="btn-info" onclick="openDetailModal('${person.id}')"><i class="fas fa-eye"></i> Détails</button>
+                        <button class="btn-success" onclick="copyLink('${person.id}')"><i class="fas fa-copy"></i> Lien</button>
+                        <button class="btn-danger" onclick="deletePerson('${person.id}')"><i class="fas fa-trash"></i></button>
+                    </div>
+                `;
+                container.appendChild(card);
+                
+                const option = document.createElement('option');
+                option.value = person.id;
+                option.textContent = `${person.name} - ${(person.currentDebt || 0).toFixed(2)}€`;
+                selectContainer.appendChild(option);
+            });
+        }
+
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function renderGlobalHistory() {
+            const container = document.getElementById('globalHistory');
+            if (!container) return;
+            container.innerHTML = '';
+            
+            const allTransactions = [];
+            debtors.forEach(person => {
+                (person.transactions || []).forEach(transaction => {
+                    allTransactions.push({ ...transaction, personName: person.name });
+                });
+            });
+            
+            allTransactions.sort((a, b) => new Date(b.date) - new Date(a.date));
+            
+            if (allTransactions.length === 0) {
+                container.innerHTML = '<p style="text-align: center; color: #888; padding: 40px;"><i class="fas fa-inbox"></i> Aucune transaction</p>';
+                return;
+            }
+            
+            const recentTransactions = allTransactions.slice(0, 50);
+            
+            recentTransactions.forEach(transaction => {
+                const div = document.createElement('div');
+                div.className = `transaction-item transaction-${transaction.type}`;
+                div.innerHTML = `
+                    <strong>${escapeHtml(transaction.personName)}</strong> - 📅 ${transaction.date}<br>
+                    ${transaction.type === 'emprunt' ? '💰 Emprunt' : transaction.type === 'remboursement' ? '💳 Remboursement' : '📈 Intérêts'} : 
+                    <strong>${transaction.amount.toFixed(2)} €</strong><br>
+                    <small>${escapeHtml(transaction.description || '')}</small>
+                `;
+                container.appendChild(div);
+            });
+        }
+
+        window.addGlobalTransaction = async function() {
+            const personId = document.getElementById('transactionPerson').value;
+            const type = document.getElementById('transactionType').value;
+            const amount = parseFloat(document.getElementById('transactionAmount').value);
+            const date = document.getElementById('transactionDate').value;
+            const description = document.getElementById('transactionDesc').value;
+            
+            if (!personId) { showNotification('Sélectionnez une personne', 'error'); return; }
+            if (isNaN(amount) || amount <= 0) { showNotification('Montant invalide', 'error'); return; }
+            
+            const person = debtors.find(p => p.id === personId);
+            if (!person) return;
+            
+            if (type === 'remboursement' && amount > person.currentDebt) {
+                showNotification('Remboursement trop élevé', 'error');
+                return;
+            }
+            
+            const transaction = {
+                id: generateUUID(),
+                date: date || new Date().toISOString().split('T')[0],
+                type: type,
+                amount: amount,
+                description: description || (type === 'emprunt' ? 'Nouvel emprunt' : 'Remboursement')
+            };
+            
+            let newDebt = person.currentDebt;
+            if (type === 'emprunt') newDebt += amount;
+            else newDebt -= amount;
+            
+            const updatedTransactions = [transaction, ...(person.transactions || [])];
+            
+            const personRef = doc(db, "debtors", personId);
+            await updateDoc(personRef, {
+                currentDebt: newDebt,
+                transactions: updatedTransactions
+            });
+            
+            showNotification('Transaction ajoutée', 'success');
+            document.getElementById('transactionAmount').value = '';
+            document.getElementById('transactionDesc').value = '';
+        };
+
+        window.savePerson = async function() {
+            const name = document.getElementById('personName').value;
+            const interestRate = parseFloat(document.getElementById('interestRate').value);
+            const frequency = document.getElementById('frequency').value;
+            const initialDebt = parseFloat(document.getElementById('initialDebt').value);
+            const startDate = document.getElementById('startDate').value;
+            
+            if (!name) { showNotification('Nom requis', 'error'); return; }
+            
+            const newPerson = {
+                name: name,
+                currentDebt: initialDebt,
+                interestRate: interestRate,
+                frequency: frequency,
+                lastInterestUpdate: startDate,
+                transactions: [],
+                createdAt: new Date().toISOString()
+            };
+            
+            if (initialDebt > 0) {
+                newPerson.transactions.push({
+                    id: generateUUID(),
+                    date: startDate,
+                    type: "emprunt",
+                    amount: initialDebt,
+                    description: "Prêt initial"
+                });
+            }
+            
+            await addDoc(collection(db, "debtors"), newPerson);
+            closeModal();
+            showNotification('Personne ajoutée', 'success');
+        };
+
+        window.deletePerson = async function(id) {
+            if (confirm('Supprimer cette personne ?')) {
+                await deleteDoc(doc(db, "debtors", id));
+                showNotification('Supprimé', 'success');
+            }
+        };
+
+        window.copyLink = function(id) {
+            const link = `${window.location.origin}${window.location.pathname.replace('admin.html', '')}index.html?id=${id}`;
+            copyToClipboard(link);
+        };
+
+        window.copyToClipboard = function(text) {
+            navigator.clipboard.writeText(text);
+            showNotification('Lien copié', 'success');
+        };
+
+        window.openDetailModal = async function(id) {
+            const person = debtors.find(p => p.id === id);
+            if (!person) return;
+            
+            const targetDate = new Date();
+            const { interests, totalInterest, periodsCount } = calculateSequentialInterest(person, targetDate);
+            
+            document.getElementById('detailName').innerHTML = `<i class="fas fa-user-circle"></i> ${escapeHtml(person.name)}`;
+            
+            const detailBody = document.getElementById('detailBody');
+            detailBody.innerHTML = `
+                <div class="form-group">
+                    <label>Taux (%) :</label>
+                    <input type="number" id="detailRate" value="${person.interestRate}" step="0.1">
+                </div>
+                <div class="form-group">
+                    <label>Fréquence :</label>
+                    <select id="detailFreq">
+                        <option value="daily" ${person.frequency === 'daily' ? 'selected' : ''}>📅 Quotidienne</option>
+                        <option value="weekly" ${person.frequency === 'weekly' ? 'selected' : ''}>📆 Hebdomadaire</option>
+                        <option value="monthly" ${person.frequency === 'monthly' ? 'selected' : ''}>📆 Mensuelle</option>
+                    </select>
+                </div>
+                <button class="btn-primary" onclick="savePersonDetails('${person.id}')" style="width:100%; margin-bottom:20px;">
+                    <i class="fas fa-save"></i> Sauvegarder
+                </button>
+                
+                <h3>💰 Dette actuelle: <strong style="color:#ef4444;">${(person.currentDebt || 0).toFixed(2)} €</strong></h3>
+                <p>📅 Dernier calcul d'intérêt: ${person.lastInterestUpdate || 'N/A'}</p>
+                
+                <div style="background:#f1f5f9; padding:16px; border-radius:16px; margin:16px 0;">
+                    <h4><i class="fas fa-clock"></i> Intérêts à appliquer</h4>
+                    <p>Périodes en attente: <strong>${periodsCount}</strong> (total estimé: ${totalInterest.toFixed(2)} €)</p>
+                    <div class="form-group">
+                        <label>Nombre de périodes à appliquer :</label>
+                        <input type="number" id="periodsToApply" min="1" max="${periodsCount}" value="${periodsCount}" style="width:100%;">
+                    </div>
+                    <div class="form-group">
+                        <label>Date jusqu'à laquelle appliquer :</label>
+                        <input type="date" id="interestEndDate" value="${new Date().toISOString().split('T')[0]}">
+                    </div>
+                    <button class="btn-warning" onclick="updateInterestForPerson('${person.id}', false)" style="width:100%; margin-bottom:8px;">
+                        <i class="fas fa-calculator"></i> Appliquer les intérêts normaux
+                    </button>
+                    <button class="btn-secondary" onclick="updateInterestForPerson('${person.id}', true)" style="width:100%;">
+                        <i class="fas fa-bolt"></i> Forcer l'application (hors échéance)
+                    </button>
+                </div>
+                
+                <h3 style="margin:20px 0 10px 0;">➕ Transaction</h3>
+                <div class="form-group">
+                    <select id="transType">
+                        <option value="emprunt">💰 Emprunt</option>
+                        <option value="remboursement">💳 Remboursement</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <input type="number" id="transAmount" step="0.01" placeholder="Montant">
+                </div>
+                <div class="form-group">
+                    <input type="date" id="transDate" value="${new Date().toISOString().split('T')[0]}">
+                </div>
+                <div class="form-group">
+                    <input type="text" id="transDesc" placeholder="Description">
+                </div>
+                <button class="btn-primary" onclick="addTransactionToPerson('${person.id}')" style="width:100%;">
+                    <i class="fas fa-plus"></i> Ajouter
+                </button>
+                
+                <h3 style="margin:20px 0 10px 0;">📜 Historique (${(person.transactions || []).length})</h3>
+                <div id="personTransactions" class="transaction-list" style="max-height:400px;"></div>
+            `;
+            
+            renderPersonTransactions(person.id);
+            document.getElementById('detailModal').style.display = 'block';
+        };
+        
+        window.savePersonDetails = async function(personId) {
+            const newRate = parseFloat(document.getElementById('detailRate').value);
+            const newFreq = document.getElementById('detailFreq').value;
+            
+            const personRef = doc(db, "debtors", personId);
+            await updateDoc(personRef, {
+                interestRate: newRate,
+                frequency: newFreq
+            });
+            
+            showNotification('Taux et fréquence mis à jour', 'success');
+        };
+        
+        function renderPersonTransactions(personId) {
+            const person = debtors.find(p => p.id === personId);
+            if (!person) return;
+            
+            const container = document.getElementById('personTransactions');
+            if (!container) return;
+            
+            container.innerHTML = '';
+            const sorted = [...(person.transactions || [])].sort((a,b) => new Date(b.date) - new Date(a.date));
+            
+            const recent = sorted.slice(0, 30);
+            
+            recent.forEach(transaction => {
+                const div = document.createElement('div');
+                div.className = `transaction-item transaction-${transaction.type}`;
+                div.innerHTML = `
+                    <strong>📅 ${transaction.date}</strong><br>
+                    ${transaction.type === 'emprunt' ? '💰 Emprunt' : transaction.type === 'remboursement' ? '💳 Remboursement' : '📈 Intérêts'} : 
+                    <strong>${transaction.amount.toFixed(2)} €</strong><br>
+                    <small>${escapeHtml(transaction.description || '')}</small>
+                `;
+                container.appendChild(div);
+            });
+        }
+        
+        window.addTransactionToPerson = async function(personId) {
+            const person = debtors.find(p => p.id === personId);
+            if (!person) return;
+            
+            const type = document.getElementById('transType').value;
+            const amount = parseFloat(document.getElementById('transAmount').value);
+            const date = document.getElementById('transDate').value;
+            const description = document.getElementById('transDesc').value;
+            
+            if (isNaN(amount) || amount <= 0) {
+                showNotification('Montant invalide', 'error');
+                return;
+            }
+            
+            if (type === 'remboursement' && amount > person.currentDebt) {
+                showNotification('Remboursement trop élevé', 'error');
+                return;
+            }
+            
+            const transaction = {
+                id: generateUUID(),
+                date: date,
+                type: type,
+                amount: amount,
+                description: description || (type === 'emprunt' ? 'Emprunt' : 'Remboursement')
+            };
+            
+            let newDebt = person.currentDebt;
+            if (type === 'emprunt') newDebt += amount;
+            else newDebt -= amount;
+            
+            const updatedTransactions = [transaction, ...(person.transactions || [])];
+            
+            const personRef = doc(db, "debtors", personId);
+            await updateDoc(personRef, {
+                currentDebt: newDebt,
+                transactions: updatedTransactions
+            });
+            
+            showNotification('Transaction ajoutée', 'success');
+            document.getElementById('transAmount').value = '';
+            document.getElementById('transDesc').value = '';
+        };
+        
+        window.updateInterestForPerson = async function(personId, forceApply) {
+            const person = debtors.find(p => p.id === personId);
+            if (!person) return;
+            
+            const endDate = document.getElementById('interestEndDate')?.value;
+            const periodsToApply = parseInt(document.getElementById('periodsToApply')?.value);
+            
+            const success = await applySequentialInterest(person, forceApply, endDate, periodsToApply);
+            
+            if (success) {
+                const personRef = doc(db, "debtors", personId);
+                await updateDoc(personRef, {
+                    currentDebt: person.currentDebt,
+                    lastInterestUpdate: person.lastInterestUpdate,
+                    transactions: person.transactions
+                });
+                showNotification(forceApply ? 'Intérêts forcés appliqués' : 'Intérêts appliqués', 'success');
+            } else {
+                showNotification('Aucun intérêt à appliquer', 'info');
+            }
+        };
+        
+        window.switchTab = function(tabName) {
+            document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+            
+            if (tabName === 'transactions') {
+                document.querySelector('.tab-btn').classList.add('active');
+                document.getElementById('tab-transactions').classList.add('active');
+            } else if (tabName === 'persons') {
+                document.querySelectorAll('.tab-btn')[1].classList.add('active');
+                document.getElementById('tab-persons').classList.add('active');
+            } else if (tabName === 'history') {
+                document.querySelectorAll('.tab-btn')[2].classList.add('active');
+                document.getElementById('tab-history').classList.add('active');
+            }
+        };
+        
+        window.closeModal = function() {
+            document.getElementById('personModal').style.display = 'none';
+        };
+        
+        window.closeDetailModal = function() {
+            document.getElementById('detailModal').style.display = 'none';
+        };
+        
+        window.openAddPersonModal = function() {
+            document.getElementById('personName').value = '';
+            document.getElementById('interestRate').value = '5';
+            document.getElementById('frequency').value = 'monthly';
+            document.getElementById('initialDebt').value = '0';
+            document.getElementById('startDate').value = new Date().toISOString().split('T')[0];
+            document.getElementById('personModal').style.display = 'block';
+        };
+
+        function showNotification(message, type = 'success') {
+            const colors = { success: '#10b981', error: '#ef4444', info: '#3b82f6' };
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.background = colors[type];
+            notification.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-info-circle'}"></i> ${message}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+        }
+
+        function renderAll() {
+            if (isLoading) return;
+            renderPersons();
+            renderGlobalHistory();
+            renderStats();
+        }
+
+        function setupRealtimeListener() {
+            if (unsubscribeListener) unsubscribeListener();
+            
+            const q = query(collection(db, "debtors"));
+            unsubscribeListener = onSnapshot(q, (snapshot) => {
+                debtors = [];
+                snapshot.forEach((doc) => {
+                    debtors.push({ id: doc.id, ...doc.data() });
+                });
+                if (isLoading) {
+                    isLoading = false;
+                    document.getElementById('connectionStatus').innerHTML = '<i class="fas fa-cloud-upload-alt"></i> Connecté à Firebase Cloud';
+                    document.getElementById('connectionStatus').style.color = '#10b981';
+                }
+                renderAll();
+            }, (error) => {
+                console.error("Firebase error:", error);
+                document.getElementById('connectionStatus').innerHTML = '<i class="fas fa-exclamation-triangle"></i> Erreur de connexion';
+                document.getElementById('connectionStatus').style.color = '#ef4444';
+            });
+        }
+
+        document.getElementById('transactionDate').value = new Date().toISOString().split('T')[0];
+        setupRealtimeListener();
+    </script>
+</body>
+</html>
