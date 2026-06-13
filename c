@@ -31,27 +31,6 @@
             background-clip: text;
             margin-bottom: 8px;
         }
-        .pay-btn-header {
-            position: absolute;
-            top: 20px;
-            right: 24px;
-            background: linear-gradient(135deg, #10b981, #059669);
-            color: white;
-            border: none;
-            border-radius: 40px;
-            padding: 10px 20px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: all 0.3s;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            font-size: 14px;
-        }
-        .pay-btn-header:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
-        }
         .debt-card {
             background: linear-gradient(135deg, #1e293b, #0f172a);
             border-radius: 28px;
@@ -63,6 +42,26 @@
         .debt-card:hover { transform: translateY(-5px); }
         .debt-label { color: #94a3b8; text-transform: uppercase; font-size: 0.85rem; margin-bottom: 16px; }
         .debt-amount { font-size: 4rem; font-weight: 800; color: #ef4444; margin: 20px 0; }
+        .pay-btn-card {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 60px;
+            padding: 14px 32px;
+            font-weight: 700;
+            font-size: 1.1rem;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 6px 16px rgba(16, 185, 129, 0.35);
+            margin-top: 12px;
+        }
+        .pay-btn-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 12px 24px rgba(16, 185, 129, 0.45);
+        }
         .info-card {
             background: white;
             border-radius: 24px;
@@ -156,6 +155,8 @@
             transform: scale(0.9);
             transition: transform 0.3s;
             box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+            max-height: 90vh;
+            overflow-y: auto;
         }
         .modal-overlay.active .modal-content {
             transform: scale(1);
@@ -177,8 +178,18 @@
             cursor: pointer;
             color: #94a3b8;
             transition: color 0.2s;
+            padding: 8px;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
-        .close-modal:hover { color: #ef4444; }
+        .close-modal:hover {
+            color: #ef4444;
+            background: #fef2f2;
+        }
         .modal-amount-input {
             width: 100%;
             padding: 16px;
@@ -218,6 +229,7 @@
             margin: 8px 0;
         }
         .modal-fee-info .total { font-weight: 700; color: #10b981; }
+        .modal-fee-info .remaining { font-weight: 700; color: #ef4444; }
         .modal-submit {
             width: 100%;
             padding: 16px;
@@ -229,20 +241,35 @@
             font-weight: 600;
             cursor: pointer;
             margin-top: 16px;
-            transition: transform 0.2s;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
         }
         .modal-submit:disabled {
             opacity: 0.6;
             cursor: not-allowed;
         }
-        .modal-submit:hover:not(:disabled) { transform: translateY(-2px); }
+        .modal-submit:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(16, 185, 129, 0.4);
+        }
+        .modal-email-input {
+            width: 100%;
+            padding: 14px;
+            font-size: 16px;
+            border: 2px solid #e2e8f0;
+            border-radius: 12px;
+            margin: 8px 0 16px 0;
+        }
+        .modal-email-input:focus { outline: none; border-color: #667eea; }
         
         @media (max-width: 768px) {
             body { padding: 16px; }
             .debt-amount { font-size: 2.5rem; }
             .info-row { flex-direction: column; gap: 6px; }
-            .pay-btn-header { position: static; margin-top: 16px; justify-content: center; }
-            .header { padding-bottom: 20px; }
         }
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
@@ -261,6 +288,10 @@
             font-weight: 500;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
+        .required {
+            color: #ef4444;
+            margin-left: 4px;
+        }
     </style>
 </head>
 <body>
@@ -274,9 +305,12 @@
         <div class="modal-content">
             <div class="modal-header">
                 <h3><i class="fas fa-hand-holding-usd"></i> Remboursement</h3>
-                <button class="close-modal" onclick="closePaymentModal()"><i class="fas fa-times"></i></button>
+                <button class="close-modal" id="closeModalBtn"><i class="fas fa-times"></i></button>
             </div>
             <div>
+                <label style="font-weight:600;">Email <span class="required">*</span></label>
+                <input type="email" id="paymentEmail" class="modal-email-input" placeholder="votre@email.com" required>
+                
                 <label style="font-weight:600;">Montant à me verser (TTC)</label>
                 <input type="number" id="paymentAmount" class="modal-amount-input" step="0.01" min="0" value="0">
                 <div class="modal-presets">
@@ -288,11 +322,14 @@
                 </div>
             </div>
             <div id="modalFeeInfo" class="modal-fee-info">
-                <div class="line"><span>Vous payez :</span><span id="grossAmount">0.00 €</span></div>
-                <div class="line"><span>Frais Dodo (10%) :</span><span id="feeAmount">0.00 €</span></div>
-                <div class="line total"><span>✅ Ma dette diminue de :</span><span id="netRepayment">0.00 €</span></div>
+                <div class="line"><span>💰 Vous payez :</span><span id="grossAmount">0.00 €</span></div>
+                <div class="line"><span>📊 Frais Dodo (10%) :</span><span id="feeAmount">0.00 €</span></div>
+                <div class="line total remaining"><span>💪 Dette restante après paiement :</span><span id="remainingDebt">0.00 €</span></div>
             </div>
-            <button id="confirmPaymentBtn" class="modal-submit"><i class="fas fa-lock"></i> Payer en ligne</button>
+            <button id="confirmPaymentBtn" class="modal-submit">
+                <i class="fas fa-lock"></i> Payer en ligne
+                <i class="fas fa-arrow-right"></i>
+            </button>
         </div>
     </div>
 
@@ -302,7 +339,7 @@
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
 
         // ============================================
-        // CONFIGURATION FIREBASE (votre config existante)
+        // CONFIGURATION FIREBASE
         // ============================================
         const firebaseConfig = {
             apiKey: "AIzaSyDt1q740HCXf0gRp0fADRtfCsdcWqUpBCE",
@@ -317,12 +354,11 @@
         // ============================================
         // CONFIGURATION DODO PAYMENTS
         // ============================================
-        // ⚠️ IMPORTANT : Remplacez par votre clé PUBLIQUE Dodo (commence par pk_)
-        // Cette clé peut être exposée dans le frontend (c'est une clé publique)
-        const DODO_PUBLIC_KEY = "VOTRE_CLE_PUBLIQUE_DODO";
+        const DODO_PUBLIC_KEY = "pk_snd_091bba0fefcd4852a44cccdcf47602b5";
         const DODO_API_URL = "https://api.dodopayments.com/v1";
         const PRODUCT_ID = "pdt_0Ngya0h3KKlfI1ujAbuUP";
-        const TRANSACTION_FEE_RATE = 0.10; // 10%
+        const TRANSACTION_FEE_RATE = 0.10;
+        const WEBHOOK_URL = "https://lost-cyrano.github.io/dettes/webhooks/DodoPayements/";
         
         // ============================================
         // INITIALISATION FIREBASE
@@ -345,7 +381,6 @@
         
         function calculateMaxAllowedAmount(debt) {
             if (debt <= 0) return 0;
-            // dette ÷ 0.9, arrondi au centime supérieur
             const rawMax = debt / (1 - TRANSACTION_FEE_RATE);
             return Math.ceil(rawMax * 100) / 100;
         }
@@ -400,8 +435,7 @@
         // ============================================
         // MISE À JOUR DE LA DETTE DANS FIREBASE
         // ============================================
-        // Cette fonction est appelée APRÈS confirmation du paiement par Dodo
-        async function updateDebtAfterPayment(grossAmountPaid, transactionId) {
+        async function updateDebtAfterPayment(grossAmountPaid, transactionId, userEmail) {
             if (!currentPersonId || !currentPerson) return false;
             
             const fee = grossAmountPaid * TRANSACTION_FEE_RATE;
@@ -412,16 +446,17 @@
                 return false;
             }
             
-            const newDebt = Math.max(0, (currentPerson.currentDebt || 0) - debtReduction);
+            const oldDebt = currentPerson.currentDebt || 0;
+            const newDebt = Math.max(0, oldDebt - debtReduction);
             const today = new Date().toISOString().split('T')[0];
             
             const transaction = {
                 type: "remboursement",
-                amount: debtReduction, // On enregistre le montant qui réduit réellement la dette
+                amount: debtReduction,
                 grossAmount: grossAmountPaid,
                 fee: fee,
                 date: today,
-                description: `Paiement en ligne (ID: ${transactionId}) - Frais 10% déduits`,
+                description: `Paiement en ligne (ID: ${transactionId}) - Frais 10% déduits - Email: ${userEmail}`,
                 timestamp: Timestamp.now()
             };
             
@@ -443,9 +478,14 @@
         // ============================================
         // CRÉATION D'UNE SESSION DODO
         // ============================================
-        async function createDodoCheckoutSession(grossAmount) {
+        async function createDodoCheckoutSession(grossAmount, userEmail) {
             if (grossAmount < 0) {
                 showNotification("Montant invalide", 'error');
+                return null;
+            }
+            
+            if (!userEmail || !userEmail.includes('@')) {
+                showNotification("Veuillez entrer un email valide", 'error');
                 return null;
             }
             
@@ -463,12 +503,13 @@
                 ],
                 success_url: successUrl,
                 cancel_url: cancelUrl,
-                customer_email: currentPerson?.email || `client_${currentPersonId}@dette.com`,
+                customer_email: userEmail,
                 metadata: {
                     debtor_id: currentPersonId,
                     debtor_name: currentPerson?.name || "Inconnu",
                     gross_amount: grossAmount,
-                    transaction_fee_rate: TRANSACTION_FEE_RATE
+                    transaction_fee_rate: TRANSACTION_FEE_RATE,
+                    webhook_url: WEBHOOK_URL
                 }
             };
             
@@ -507,7 +548,6 @@
             if (isNaN(gross)) gross = 0;
             if (gross < 0) gross = 0;
             
-            // Plafonner au max autorisé
             if (gross > currentMaxAllowed && currentMaxAllowed > 0) {
                 gross = currentMaxAllowed;
                 amountInput.value = gross.toFixed(2);
@@ -515,10 +555,12 @@
             
             const fee = gross * TRANSACTION_FEE_RATE;
             const net = gross - fee;
+            const currentDebt = currentPerson?.currentDebt || 0;
+            const remainingDebt = Math.max(0, currentDebt - net);
             
             document.getElementById('grossAmount').textContent = gross.toFixed(2) + ' €';
             document.getElementById('feeAmount').textContent = fee.toFixed(2) + ' €';
-            document.getElementById('netRepayment').textContent = net.toFixed(2) + ' €';
+            document.getElementById('remainingDebt').textContent = remainingDebt.toFixed(2) + ' €';
         }
         
         function openPaymentModal() {
@@ -530,15 +572,17 @@
             const currentDebt = currentPerson.currentDebt || 0;
             currentMaxAllowed = calculateMaxAllowedAmount(currentDebt);
             
-            const modal = document.getElementById('paymentModal');
-            const amountInput = document.getElementById('paymentAmount');
-            
             if (currentDebt <= 0) {
                 showNotification("Vous n'avez plus aucune dette à rembourser ! 🎉", 'success');
                 return;
             }
             
+            const modal = document.getElementById('paymentModal');
+            const amountInput = document.getElementById('paymentAmount');
+            const emailInput = document.getElementById('paymentEmail');
+            
             amountInput.value = "0";
+            emailInput.value = "";
             updateModalPreview();
             modal.classList.add('active');
         }
@@ -549,15 +593,23 @@
         
         async function confirmPayment() {
             const amountInput = document.getElementById('paymentAmount');
+            const emailInput = document.getElementById('paymentEmail');
+            
             let grossAmount = parseFloat(amountInput.value);
             if (isNaN(grossAmount)) grossAmount = 0;
             if (grossAmount < 0) grossAmount = 0;
+            
+            const userEmail = emailInput.value.trim();
+            if (!userEmail || !userEmail.includes('@')) {
+                showNotification("Veuillez entrer une adresse email valide", 'error');
+                return;
+            }
             
             if (grossAmount > currentMaxAllowed && currentMaxAllowed > 0) {
                 grossAmount = currentMaxAllowed;
             }
             
-            if (grossAmount === 0) {
+            if (grossAmount <= 0) {
                 showNotification("Le montant doit être supérieur à 0€", 'error');
                 return;
             }
@@ -567,12 +619,12 @@
             confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création du paiement...';
             
             try {
-                const session = await createDodoCheckoutSession(grossAmount);
+                const session = await createDodoCheckoutSession(grossAmount, userEmail);
                 if (session && session.checkout_url) {
-                    // Stocker le montant pour traitement au retour
                     sessionStorage.setItem('pendingPayment', JSON.stringify({
                         grossAmount: grossAmount,
                         debtorId: currentPersonId,
+                        userEmail: userEmail,
                         timestamp: Date.now()
                     }));
                     window.location.href = session.checkout_url;
@@ -584,7 +636,7 @@
                 showNotification("Erreur technique, veuillez réessayer", 'error');
             } finally {
                 confirmBtn.disabled = false;
-                confirmBtn.innerHTML = '<i class="fas fa-lock"></i> Payer en ligne';
+                confirmBtn.innerHTML = '<i class="fas fa-lock"></i> Payer en ligne <i class="fas fa-arrow-right"></i>';
             }
         }
         
@@ -599,21 +651,18 @@
             if (paymentSuccess === 'true') {
                 const pending = sessionStorage.getItem('pendingPayment');
                 if (pending) {
-                    const { grossAmount, debtorId } = JSON.parse(pending);
+                    const { grossAmount, debtorId, userEmail } = JSON.parse(pending);
                     sessionStorage.removeItem('pendingPayment');
                     
                     if (debtorId === currentPersonId) {
                         showNotification("Paiement réussi ! Mise à jour de votre dette...", 'success');
-                        // Mettre à jour la dette localement et dans Firebase
-                        await updateDebtAfterPayment(grossAmount, 'dodo_' + Date.now());
-                        // Recharger les données pour rafraîchir l'affichage
+                        await updateDebtAfterPayment(grossAmount, 'dodo_' + Date.now(), userEmail);
                         await loadPersonData();
                     }
                 } else {
                     showNotification("Paiement réussi ! Rafraîchissement des données...", 'success');
                     await loadPersonData();
                 }
-                // Nettoyer l'URL
                 window.history.replaceState({}, document.title, window.location.pathname);
             } else if (paymentCancel === 'true') {
                 showNotification("Paiement annulé", 'error');
@@ -632,7 +681,7 @@
                 currentPerson = { id: docSnap.id, ...docSnap.data() };
                 renderPage();
                 setupRealtimeListener();
-                await handlePaymentReturn(); // Vérifier si on revient d'un paiement
+                await handlePaymentReturn();
             } else {
                 showError("Personne non trouvée - Lien invalide ou expiré");
             }
@@ -666,12 +715,14 @@
                 <div class="header">
                     <h1><i class="fas fa-coins"></i> Suivi de ma dette</h1>
                     <p>Bonjour <strong>${escapeHtml(currentPerson.name)}</strong></p>
-                    <button class="pay-btn-header" id="openPayBtn"><i class="fas fa-credit-card"></i> Rembourser maintenant</button>
                 </div>
                 <div class="debt-card">
                     <div class="debt-label">Montant actuel dû</div>
                     <div class="debt-amount">${(currentPerson.currentDebt || 0).toFixed(2)} €</div>
-                    ${currentPerson.currentDebt > 0 ? `<div style="color:#94a3b8; font-size:13px;">💡 Paiement max accepté: ${calculateMaxAllowedAmount(currentPerson.currentDebt).toFixed(2)} € (frais inclus)</div>` : ''}
+                    <button class="pay-btn-card" id="cardPayBtn">
+                        <i class="fas fa-credit-card"></i> Rembourser en ligne
+                        <i class="fas fa-arrow-right"></i>
+                    </button>
                 </div>
                 <div class="info-card">
                     <div class="info-row"><span class="info-label"><i class="fas fa-percent"></i> Taux d'intérêt</span><span class="info-value">${currentPerson.interestRate || 0}%</span></div>
@@ -721,9 +772,8 @@
                 }
             }
             
-            // Attacher l'événement au bouton après rendu
-            const openBtn = document.getElementById('openPayBtn');
-            if (openBtn) openBtn.addEventListener('click', openPaymentModal);
+            const cardPayBtn = document.getElementById('cardPayBtn');
+            if (cardPayBtn) cardPayBtn.addEventListener('click', openPaymentModal);
         }
         
         async function loadData() {
@@ -740,6 +790,11 @@
             const amountInput = document.getElementById('paymentAmount');
             if (amountInput) {
                 amountInput.addEventListener('input', updateModalPreview);
+            }
+            
+            const emailInput = document.getElementById('paymentEmail');
+            if (emailInput) {
+                emailInput.addEventListener('input', updateModalPreview);
             }
             
             document.querySelectorAll('.preset-chip[data-amount]').forEach(btn => {
@@ -772,7 +827,11 @@
                 confirmBtn.addEventListener('click', confirmPayment);
             }
             
-            // Fermer la modal en cliquant sur l'overlay
+            const closeBtn = document.getElementById('closeModalBtn');
+            if (closeBtn) {
+                closeBtn.addEventListener('click', closePaymentModal);
+            }
+            
             const modal = document.getElementById('paymentModal');
             if (modal) {
                 modal.addEventListener('click', (e) => {
@@ -781,12 +840,10 @@
             }
         }
         
-        // Nettoyer le listener à la fermeture
         window.addEventListener('beforeunload', () => {
             if (unsubscribeListener) unsubscribeListener();
         });
         
-        // Démarrer l'application
         initModalListeners();
         loadData();
     </script>
