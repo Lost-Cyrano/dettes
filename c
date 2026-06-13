@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-    <title>Ma dette - Suivi</title>
+    <title>Ma dette - Suivi & Paiement</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:ital,wght@0,300;0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -22,6 +22,7 @@
             padding: 32px;
             margin-bottom: 32px;
             text-align: center;
+            position: relative;
         }
         .header h1 {
             background: linear-gradient(135deg, #667eea, #764ba2);
@@ -29,6 +30,27 @@
             -webkit-text-fill-color: transparent;
             background-clip: text;
             margin-bottom: 8px;
+        }
+        .pay-btn-header {
+            position: absolute;
+            top: 20px;
+            right: 24px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            padding: 10px 20px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 14px;
+        }
+        .pay-btn-header:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 14px rgba(16, 185, 129, 0.3);
         }
         .debt-card {
             background: linear-gradient(135deg, #1e293b, #0f172a);
@@ -92,6 +114,7 @@
             font-weight: 600;
             transition: all 0.3s;
             box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+            z-index: 100;
         }
         .refresh-btn:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(0,0,0,0.2); }
         .last-update { text-align: center; color: #94a3b8; font-size: 0.75rem; margin-top: 20px; }
@@ -102,10 +125,124 @@
             text-align: center;
         }
         .loading-spinner { text-align: center; padding: 60px; color: white; font-size: 1.2rem; }
+        
+        /* Modal styles */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.7);
+            backdrop-filter: blur(8px);
+            z-index: 2000;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s;
+        }
+        .modal-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 32px;
+            max-width: 500px;
+            width: 90%;
+            padding: 32px;
+            transform: scale(0.9);
+            transition: transform 0.3s;
+            box-shadow: 0 25px 50px -12px rgba(0,0,0,0.5);
+        }
+        .modal-overlay.active .modal-content {
+            transform: scale(1);
+        }
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 24px;
+        }
+        .modal-header h3 {
+            font-size: 1.5rem;
+            color: #1e293b;
+        }
+        .close-modal {
+            background: none;
+            border: none;
+            font-size: 24px;
+            cursor: pointer;
+            color: #94a3b8;
+            transition: color 0.2s;
+        }
+        .close-modal:hover { color: #ef4444; }
+        .modal-amount-input {
+            width: 100%;
+            padding: 16px;
+            font-size: 24px;
+            text-align: center;
+            border: 2px solid #e2e8f0;
+            border-radius: 16px;
+            margin: 16px 0;
+            font-weight: 600;
+        }
+        .modal-amount-input:focus { outline: none; border-color: #667eea; }
+        .modal-presets {
+            display: flex;
+            gap: 10px;
+            margin: 16px 0;
+            flex-wrap: wrap;
+        }
+        .preset-chip {
+            background: #f1f5f9;
+            padding: 8px 16px;
+            border-radius: 40px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .preset-chip:hover { background: #667eea; color: white; }
+        .modal-fee-info {
+            background: #f8fafc;
+            padding: 16px;
+            border-radius: 16px;
+            margin: 16px 0;
+            font-size: 14px;
+        }
+        .modal-fee-info .line {
+            display: flex;
+            justify-content: space-between;
+            margin: 8px 0;
+        }
+        .modal-fee-info .total { font-weight: 700; color: #10b981; }
+        .modal-submit {
+            width: 100%;
+            padding: 16px;
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+            border: none;
+            border-radius: 40px;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            margin-top: 16px;
+            transition: transform 0.2s;
+        }
+        .modal-submit:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        .modal-submit:hover:not(:disabled) { transform: translateY(-2px); }
+        
         @media (max-width: 768px) {
             body { padding: 16px; }
             .debt-amount { font-size: 2.5rem; }
             .info-row { flex-direction: column; gap: 6px; }
+            .pay-btn-header { position: static; margin-top: 16px; justify-content: center; }
+            .header { padding-bottom: 20px; }
         }
         @keyframes slideIn {
             from { transform: translateX(100%); opacity: 0; }
@@ -132,12 +269,41 @@
     </div>
     <button class="refresh-btn" onclick="location.reload()"><i class="fas fa-sync-alt"></i> Actualiser</button>
 
+    <!-- Modal de paiement -->
+    <div id="paymentModal" class="modal-overlay">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3><i class="fas fa-hand-holding-usd"></i> Remboursement</h3>
+                <button class="close-modal" onclick="closePaymentModal()"><i class="fas fa-times"></i></button>
+            </div>
+            <div>
+                <label style="font-weight:600;">Montant à me verser (TTC)</label>
+                <input type="number" id="paymentAmount" class="modal-amount-input" step="0.01" min="0" value="0">
+                <div class="modal-presets">
+                    <span class="preset-chip" data-amount="10">+10€</span>
+                    <span class="preset-chip" data-amount="20">+20€</span>
+                    <span class="preset-chip" data-amount="50">+50€</span>
+                    <span class="preset-chip" data-amount="100">+100€</span>
+                    <span class="preset-chip" id="maxPreset">💳 Max</span>
+                </div>
+            </div>
+            <div id="modalFeeInfo" class="modal-fee-info">
+                <div class="line"><span>Vous payez :</span><span id="grossAmount">0.00 €</span></div>
+                <div class="line"><span>Frais Dodo (10%) :</span><span id="feeAmount">0.00 €</span></div>
+                <div class="line total"><span>✅ Ma dette diminue de :</span><span id="netRepayment">0.00 €</span></div>
+            </div>
+            <button id="confirmPaymentBtn" class="modal-submit"><i class="fas fa-lock"></i> Payer en ligne</button>
+        </div>
+    </div>
+
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-app.js";
-        import { getFirestore, doc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
+        import { getFirestore, doc, getDoc, onSnapshot, updateDoc, arrayUnion, Timestamp } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-firestore.js";
         import { getAnalytics } from "https://www.gstatic.com/firebasejs/12.14.0/firebase-analytics.js";
 
-        // Firebase configuration
+        // ============================================
+        // CONFIGURATION FIREBASE (votre config existante)
+        // ============================================
         const firebaseConfig = {
             apiKey: "AIzaSyDt1q740HCXf0gRp0fADRtfCsdcWqUpBCE",
             authDomain: "gestion-dettes-fcea1.firebaseapp.com",
@@ -148,6 +314,19 @@
             measurementId: "G-1LQ8QRHNF0"
         };
 
+        // ============================================
+        // CONFIGURATION DODO PAYMENTS
+        // ============================================
+        // ⚠️ IMPORTANT : Remplacez par votre clé PUBLIQUE Dodo (commence par pk_)
+        // Cette clé peut être exposée dans le frontend (c'est une clé publique)
+        const DODO_PUBLIC_KEY = "VOTRE_CLE_PUBLIQUE_DODO";
+        const DODO_API_URL = "https://api.dodopayments.com/v1";
+        const PRODUCT_ID = "pdt_0Ngya0h3KKlfI1ujAbuUP";
+        const TRANSACTION_FEE_RATE = 0.10; // 10%
+        
+        // ============================================
+        // INITIALISATION FIREBASE
+        // ============================================
         const app = initializeApp(firebaseConfig);
         const analytics = getAnalytics(app);
         const db = getFirestore(app);
@@ -156,18 +335,295 @@
         let currentPersonId = null;
         let unsubscribeListener = null;
         
+        // ============================================
+        // FONCTIONS UTILITAIRES
+        // ============================================
         function getPersonIdFromUrl() {
             const params = new URLSearchParams(window.location.search);
             return params.get('id');
         }
         
-        async function loadData() {
-            const id = getPersonIdFromUrl();
-            if (!id) { showError("Lien invalide - Identifiant manquant"); return; }
-            currentPersonId = id;
-            await loadPersonData();
+        function calculateMaxAllowedAmount(debt) {
+            if (debt <= 0) return 0;
+            // dette ÷ 0.9, arrondi au centime supérieur
+            const rawMax = debt / (1 - TRANSACTION_FEE_RATE);
+            return Math.ceil(rawMax * 100) / 100;
         }
         
+        function showNotification(message, type = 'success') {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.style.background = type === 'error' ? '#ef4444' : '#10b981';
+            notification.innerHTML = `<i class="fas ${type === 'error' ? 'fa-exclamation-triangle' : 'fa-check-circle'}"></i> ${message}`;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 4000);
+        }
+        
+        function showError(msg) {
+            document.getElementById('app').innerHTML = `
+                <div class="error-card">
+                    <i class="fas fa-exclamation-triangle" style="font-size:3rem; color:#ef4444; margin-bottom:20px;"></i>
+                    <h2 style="color:#ef4444; margin-bottom:16px;">Erreur</h2>
+                    <p>${msg}</p>
+                    <button onclick="location.reload()" style="margin-top:24px; padding:12px 24px; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border:none; border-radius:12px; cursor:pointer;">
+                        <i class="fas fa-sync-alt"></i> Réessayer
+                    </button>
+                </div>
+            `;
+        }
+        
+        function getFrequencyLabel(freq) {
+            const labels = { daily: 'Quotidienne', weekly: 'Hebdomadaire', monthly: 'Mensuelle' };
+            return labels[freq] || freq;
+        }
+        
+        function getTransactionIcon(type) {
+            const icons = { emprunt: '💰', remboursement: '💳', interets: '📈' };
+            return icons[type] || '📝';
+        }
+        
+        function getTransactionLabel(type) {
+            const labels = { emprunt: 'Emprunt', remboursement: 'Remboursement', interets: 'Intérêts' };
+            return labels[type] || type;
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+        
+        // ============================================
+        // MISE À JOUR DE LA DETTE DANS FIREBASE
+        // ============================================
+        // Cette fonction est appelée APRÈS confirmation du paiement par Dodo
+        async function updateDebtAfterPayment(grossAmountPaid, transactionId) {
+            if (!currentPersonId || !currentPerson) return false;
+            
+            const fee = grossAmountPaid * TRANSACTION_FEE_RATE;
+            const debtReduction = grossAmountPaid - fee;
+            
+            if (debtReduction <= 0) {
+                showNotification(`Paiement de ${grossAmountPaid.toFixed(2)}€ reçu, mais frais de ${fee.toFixed(2)}€ = aucune réduction de dette`, 'error');
+                return false;
+            }
+            
+            const newDebt = Math.max(0, (currentPerson.currentDebt || 0) - debtReduction);
+            const today = new Date().toISOString().split('T')[0];
+            
+            const transaction = {
+                type: "remboursement",
+                amount: debtReduction, // On enregistre le montant qui réduit réellement la dette
+                grossAmount: grossAmountPaid,
+                fee: fee,
+                date: today,
+                description: `Paiement en ligne (ID: ${transactionId}) - Frais 10% déduits`,
+                timestamp: Timestamp.now()
+            };
+            
+            try {
+                const debtorRef = doc(db, "debtors", currentPersonId);
+                await updateDoc(debtorRef, {
+                    currentDebt: newDebt,
+                    transactions: arrayUnion(transaction)
+                });
+                showNotification(`✅ Remboursement appliqué ! Dette réduite de ${debtReduction.toFixed(2)}€`, 'success');
+                return true;
+            } catch (error) {
+                console.error("Erreur mise à jour Firebase:", error);
+                showNotification("Erreur lors de la mise à jour de la dette", 'error');
+                return false;
+            }
+        }
+        
+        // ============================================
+        // CRÉATION D'UNE SESSION DODO
+        // ============================================
+        async function createDodoCheckoutSession(grossAmount) {
+            if (grossAmount < 0) {
+                showNotification("Montant invalide", 'error');
+                return null;
+            }
+            
+            const amountInCents = Math.round(grossAmount * 100);
+            const successUrl = `${window.location.origin}${window.location.pathname}?payment_success=true`;
+            const cancelUrl = `${window.location.origin}${window.location.pathname}?payment_cancel=true`;
+            
+            const payload = {
+                product_cart: [
+                    {
+                        product_id: PRODUCT_ID,
+                        quantity: 1,
+                        amount: amountInCents
+                    }
+                ],
+                success_url: successUrl,
+                cancel_url: cancelUrl,
+                customer_email: currentPerson?.email || `client_${currentPersonId}@dette.com`,
+                metadata: {
+                    debtor_id: currentPersonId,
+                    debtor_name: currentPerson?.name || "Inconnu",
+                    gross_amount: grossAmount,
+                    transaction_fee_rate: TRANSACTION_FEE_RATE
+                }
+            };
+            
+            try {
+                const response = await fetch(`${DODO_API_URL}/checkout/session`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'Authorization': `Bearer ${DODO_PUBLIC_KEY}`
+                    },
+                    body: JSON.stringify(payload)
+                });
+                
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Erreur Dodo: ${response.status} ${errorText}`);
+                }
+                
+                const session = await response.json();
+                return session;
+            } catch (error) {
+                console.error("Erreur création session Dodo:", error);
+                showNotification(`Impossible de créer le paiement: ${error.message}`, 'error');
+                return null;
+            }
+        }
+        
+        // ============================================
+        // GESTION MODALE DE PAIEMENT
+        // ============================================
+        let currentMaxAllowed = 0;
+        
+        function updateModalPreview() {
+            const amountInput = document.getElementById('paymentAmount');
+            let gross = parseFloat(amountInput.value);
+            if (isNaN(gross)) gross = 0;
+            if (gross < 0) gross = 0;
+            
+            // Plafonner au max autorisé
+            if (gross > currentMaxAllowed && currentMaxAllowed > 0) {
+                gross = currentMaxAllowed;
+                amountInput.value = gross.toFixed(2);
+            }
+            
+            const fee = gross * TRANSACTION_FEE_RATE;
+            const net = gross - fee;
+            
+            document.getElementById('grossAmount').textContent = gross.toFixed(2) + ' €';
+            document.getElementById('feeAmount').textContent = fee.toFixed(2) + ' €';
+            document.getElementById('netRepayment').textContent = net.toFixed(2) + ' €';
+        }
+        
+        function openPaymentModal() {
+            if (!currentPerson) {
+                showNotification("Données non chargées", 'error');
+                return;
+            }
+            
+            const currentDebt = currentPerson.currentDebt || 0;
+            currentMaxAllowed = calculateMaxAllowedAmount(currentDebt);
+            
+            const modal = document.getElementById('paymentModal');
+            const amountInput = document.getElementById('paymentAmount');
+            
+            if (currentDebt <= 0) {
+                showNotification("Vous n'avez plus aucune dette à rembourser ! 🎉", 'success');
+                return;
+            }
+            
+            amountInput.value = "0";
+            updateModalPreview();
+            modal.classList.add('active');
+        }
+        
+        function closePaymentModal() {
+            document.getElementById('paymentModal').classList.remove('active');
+        }
+        
+        async function confirmPayment() {
+            const amountInput = document.getElementById('paymentAmount');
+            let grossAmount = parseFloat(amountInput.value);
+            if (isNaN(grossAmount)) grossAmount = 0;
+            if (grossAmount < 0) grossAmount = 0;
+            
+            if (grossAmount > currentMaxAllowed && currentMaxAllowed > 0) {
+                grossAmount = currentMaxAllowed;
+            }
+            
+            if (grossAmount === 0) {
+                showNotification("Le montant doit être supérieur à 0€", 'error');
+                return;
+            }
+            
+            const confirmBtn = document.getElementById('confirmPaymentBtn');
+            confirmBtn.disabled = true;
+            confirmBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Création du paiement...';
+            
+            try {
+                const session = await createDodoCheckoutSession(grossAmount);
+                if (session && session.checkout_url) {
+                    // Stocker le montant pour traitement au retour
+                    sessionStorage.setItem('pendingPayment', JSON.stringify({
+                        grossAmount: grossAmount,
+                        debtorId: currentPersonId,
+                        timestamp: Date.now()
+                    }));
+                    window.location.href = session.checkout_url;
+                } else {
+                    showNotification("Erreur: impossible de créer la session de paiement", 'error');
+                }
+            } catch (error) {
+                console.error(error);
+                showNotification("Erreur technique, veuillez réessayer", 'error');
+            } finally {
+                confirmBtn.disabled = false;
+                confirmBtn.innerHTML = '<i class="fas fa-lock"></i> Payer en ligne';
+            }
+        }
+        
+        // ============================================
+        // GESTION DU RETOUR APRÈS PAIEMENT
+        // ============================================
+        async function handlePaymentReturn() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const paymentSuccess = urlParams.get('payment_success');
+            const paymentCancel = urlParams.get('payment_cancel');
+            
+            if (paymentSuccess === 'true') {
+                const pending = sessionStorage.getItem('pendingPayment');
+                if (pending) {
+                    const { grossAmount, debtorId } = JSON.parse(pending);
+                    sessionStorage.removeItem('pendingPayment');
+                    
+                    if (debtorId === currentPersonId) {
+                        showNotification("Paiement réussi ! Mise à jour de votre dette...", 'success');
+                        // Mettre à jour la dette localement et dans Firebase
+                        await updateDebtAfterPayment(grossAmount, 'dodo_' + Date.now());
+                        // Recharger les données pour rafraîchir l'affichage
+                        await loadPersonData();
+                    }
+                } else {
+                    showNotification("Paiement réussi ! Rafraîchissement des données...", 'success');
+                    await loadPersonData();
+                }
+                // Nettoyer l'URL
+                window.history.replaceState({}, document.title, window.location.pathname);
+            } else if (paymentCancel === 'true') {
+                showNotification("Paiement annulé", 'error');
+                window.history.replaceState({}, document.title, window.location.pathname);
+            }
+        }
+        
+        // ============================================
+        // CHARGEMENT DES DONNÉES FIREBASE
+        // ============================================
         async function loadPersonData() {
             const docRef = doc(db, "debtors", currentPersonId);
             const docSnap = await getDoc(docRef);
@@ -176,6 +632,7 @@
                 currentPerson = { id: docSnap.id, ...docSnap.data() };
                 renderPage();
                 setupRealtimeListener();
+                await handlePaymentReturn(); // Vérifier si on revient d'un paiement
             } else {
                 showError("Personne non trouvée - Lien invalide ou expiré");
             }
@@ -209,10 +666,12 @@
                 <div class="header">
                     <h1><i class="fas fa-coins"></i> Suivi de ma dette</h1>
                     <p>Bonjour <strong>${escapeHtml(currentPerson.name)}</strong></p>
+                    <button class="pay-btn-header" id="openPayBtn"><i class="fas fa-credit-card"></i> Rembourser maintenant</button>
                 </div>
                 <div class="debt-card">
                     <div class="debt-label">Montant actuel dû</div>
                     <div class="debt-amount">${(currentPerson.currentDebt || 0).toFixed(2)} €</div>
+                    ${currentPerson.currentDebt > 0 ? `<div style="color:#94a3b8; font-size:13px;">💡 Paiement max accepté: ${calculateMaxAllowedAmount(currentPerson.currentDebt).toFixed(2)} € (frais inclus)</div>` : ''}
                 </div>
                 <div class="info-card">
                     <div class="info-row"><span class="info-label"><i class="fas fa-percent"></i> Taux d'intérêt</span><span class="info-value">${currentPerson.interestRate || 0}%</span></div>
@@ -234,15 +693,20 @@
             if (transactions.length === 0) {
                 container.innerHTML = '<p style="text-align:center; color:#94a3b8; padding:40px;"><i class="fas fa-inbox"></i> Aucune transaction</p>';
             } else {
-                // Limiter à 50 transactions pour performance
                 const recent = transactions.slice(0, 50);
                 recent.forEach(t => {
                     const div = document.createElement('div');
                     div.className = `transaction-item transaction-${t.type}`;
+                    let amountDisplay = t.amount;
+                    if (t.type === 'remboursement' && t.grossAmount) {
+                        amountDisplay = `${t.amount.toFixed(2)} € (payé ${t.grossAmount.toFixed(2)}€ - frais ${t.fee.toFixed(2)}€)`;
+                    } else {
+                        amountDisplay = `${t.amount.toFixed(2)} €`;
+                    }
                     div.innerHTML = `
                         <div style="font-size:0.8rem; color:#64748b; margin-bottom:5px;">📅 ${t.date}</div>
                         <div style="font-weight:600; margin-bottom:5px;">${getTransactionIcon(t.type)} ${getTransactionLabel(t.type)}</div>
-                        <div style="font-size:1.1rem; font-weight:700;">${t.amount.toFixed(2)} €</div>
+                        <div style="font-size:1.1rem; font-weight:700;">${amountDisplay}</div>
                         ${t.description ? `<div style="margin-top:5px; font-size:0.85rem; color:#64748b;"><i class="fas fa-comment"></i> ${escapeHtml(t.description)}</div>` : ''}
                     `;
                     container.appendChild(div);
@@ -256,56 +720,65 @@
                     container.appendChild(info);
                 }
             }
+            
+            // Attacher l'événement au bouton après rendu
+            const openBtn = document.getElementById('openPayBtn');
+            if (openBtn) openBtn.addEventListener('click', openPaymentModal);
         }
         
-        function getFrequencyLabel(freq) {
-            const labels = {
-                daily: 'Quotidienne',
-                weekly: 'Hebdomadaire',
-                monthly: 'Mensuelle'
-            };
-            return labels[freq] || freq;
+        async function loadData() {
+            const id = getPersonIdFromUrl();
+            if (!id) { showError("Lien invalide - Identifiant manquant"); return; }
+            currentPersonId = id;
+            await loadPersonData();
         }
         
-        function getTransactionIcon(type) {
-            const icons = { emprunt: '💰', remboursement: '💳', interets: '📈' };
-            return icons[type] || '📝';
-        }
-        
-        function getTransactionLabel(type) {
-            const labels = { emprunt: 'Emprunt', remboursement: 'Remboursement', interets: 'Intérêts' };
-            return labels[type] || type;
-        }
-        
-        function escapeHtml(str) {
-            if (!str) return '';
-            return str.replace(/[&<>]/g, function(m) {
-                if (m === '&') return '&amp;';
-                if (m === '<') return '&lt;';
-                if (m === '>') return '&gt;';
-                return m;
+        // ============================================
+        // INITIALISATION DES ÉCOUTEURS MODALE
+        // ============================================
+        function initModalListeners() {
+            const amountInput = document.getElementById('paymentAmount');
+            if (amountInput) {
+                amountInput.addEventListener('input', updateModalPreview);
+            }
+            
+            document.querySelectorAll('.preset-chip[data-amount]').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const amount = parseFloat(btn.dataset.amount);
+                    if (!isNaN(amount)) {
+                        const input = document.getElementById('paymentAmount');
+                        if (input) {
+                            let val = amount;
+                            if (val > currentMaxAllowed && currentMaxAllowed > 0) val = currentMaxAllowed;
+                            input.value = val.toFixed(2);
+                            updateModalPreview();
+                        }
+                    }
+                });
             });
-        }
-        
-        function showError(msg) {
-            document.getElementById('app').innerHTML = `
-                <div class="error-card">
-                    <i class="fas fa-exclamation-triangle" style="font-size:3rem; color:#ef4444; margin-bottom:20px;"></i>
-                    <h2 style="color:#ef4444; margin-bottom:16px;">Erreur</h2>
-                    <p>${msg}</p>
-                    <button onclick="location.reload()" style="margin-top:24px; padding:12px 24px; background:linear-gradient(135deg, #667eea, #764ba2); color:white; border:none; border-radius:12px; cursor:pointer;">
-                        <i class="fas fa-sync-alt"></i> Réessayer
-                    </button>
-                </div>
-            `;
-        }
-        
-        function showNotification(message) {
-            const notification = document.createElement('div');
-            notification.className = 'notification';
-            notification.innerHTML = `<i class="fas fa-sync-alt"></i> ${message}`;
-            document.body.appendChild(notification);
-            setTimeout(() => notification.remove(), 3000);
+            
+            const maxPreset = document.getElementById('maxPreset');
+            if (maxPreset) {
+                maxPreset.addEventListener('click', () => {
+                    if (currentMaxAllowed > 0) {
+                        document.getElementById('paymentAmount').value = currentMaxAllowed.toFixed(2);
+                        updateModalPreview();
+                    }
+                });
+            }
+            
+            const confirmBtn = document.getElementById('confirmPaymentBtn');
+            if (confirmBtn) {
+                confirmBtn.addEventListener('click', confirmPayment);
+            }
+            
+            // Fermer la modal en cliquant sur l'overlay
+            const modal = document.getElementById('paymentModal');
+            if (modal) {
+                modal.addEventListener('click', (e) => {
+                    if (e.target === modal) closePaymentModal();
+                });
+            }
         }
         
         // Nettoyer le listener à la fermeture
@@ -313,6 +786,8 @@
             if (unsubscribeListener) unsubscribeListener();
         });
         
+        // Démarrer l'application
+        initModalListeners();
         loadData();
     </script>
 </body>
